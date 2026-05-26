@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#080b14">
-    <meta name="description" content="Periodic 2048 is a premium educational 2048-style puzzle game for learning chemical elements.">
+    <meta name="theme-color" content="#070815">
+    <meta name="description" content="Periodic 2048 is a premium neon puzzle game for discovering chemical elements.">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Periodic 2048">
@@ -24,53 +24,53 @@
     </div>
 
     <main class="app-shell">
-      <header class="topbar">
-        <section class="brand-panel glass-panel">
-          <div>
-            <p class="eyebrow">Elemental puzzle lab</p>
-            <h1>Periodic 2048</h1>
-          </div>
-          <button class="icon-button" id="soundToggle" type="button" aria-label="Toggle sound" title="Toggle sound">
-            <span id="soundIcon">♪</span>
-          </button>
-        </section>
+      <section class="brand-panel glass-panel">
+        <div>
+          <p class="eyebrow">Elemental fusion grid</p>
+          <h1>Periodic 2048</h1>
+        </div>
+        <button class="icon-button" id="soundToggle" type="button" aria-label="Toggle sound" title="Toggle sound">
+          <span id="soundIcon">Sound</span>
+        </button>
+      </section>
 
-        <section class="stats-grid" aria-label="Game stats">
-          <article class="stat-card glass-panel">
-            <span>Score</span>
-            <strong id="score">0</strong>
-          </article>
-          <article class="stat-card glass-panel">
-            <span>Best</span>
-            <strong id="bestScore">0</strong>
-          </article>
-          <article class="stat-card glass-panel">
-            <span>Highest</span>
-            <strong id="highestElement">H</strong>
-          </article>
-        </section>
-      </header>
+      <section class="stats-grid" aria-label="Game stats">
+        <article class="stat-card glass-panel">
+          <span>Score</span>
+          <strong id="score">0</strong>
+        </article>
+        <article class="stat-card glass-panel">
+          <span>Best</span>
+          <strong id="bestScore">0</strong>
+        </article>
+        <article class="stat-card glass-panel">
+          <span>Highest</span>
+          <strong id="highestElement">H 1</strong>
+        </article>
+        <article class="stat-card glass-panel era-stat">
+          <span>Chemical Era</span>
+          <strong id="eraName">Genesis Era</strong>
+        </article>
+      </section>
 
       <section class="game-layout">
         <aside class="side-panel glass-panel era-panel">
-          <p class="eyebrow">Chemical era</p>
-          <h2 id="eraName">Genesis Era</h2>
+          <p class="eyebrow">Spawn matrix</p>
           <p id="eraPool">Spawn pool: H 90% / He 10%</p>
           <div class="progress-track" aria-hidden="true">
             <span id="eraProgress"></span>
           </div>
+          <p class="mini-copy"><span id="unlockCount">1</span>/118 unlocked</p>
         </aside>
 
         <section class="board-wrap">
           <div class="board-shell glass-panel">
             <div id="board" class="board" aria-label="Periodic 2048 board" role="application"></div>
           </div>
-          <p class="info-panel glass-panel">Merge identical elements to discover the next element.</p>
         </section>
 
         <aside class="side-panel glass-panel lesson-panel">
-          <p class="eyebrow">Unlocked</p>
-          <h2><span id="unlockCount">1</span>/118</h2>
+          <p class="eyebrow">Active signal</p>
           <p id="currentFact">Hydrogen is the most abundant element in the universe.</p>
         </aside>
       </section>
@@ -79,14 +79,15 @@
         <button id="newGameBtn" type="button">New Game</button>
         <button id="collectionBtn" type="button">Collection</button>
         <button id="achievementsBtn" type="button">Achievements</button>
+        <button id="settingsBtn" type="button">Settings</button>
         <button id="howBtn" type="button">How to Play</button>
       </nav>
 
       <section class="mobile-controls glass-panel" aria-label="Directional controls">
-        <button data-dir="up" type="button" aria-label="Move up">↑</button>
-        <button data-dir="left" type="button" aria-label="Move left">←</button>
-        <button data-dir="down" type="button" aria-label="Move down">↓</button>
-        <button data-dir="right" type="button" aria-label="Move right">→</button>
+        <button data-dir="up" type="button" aria-label="Move up">Up</button>
+        <button data-dir="left" type="button" aria-label="Move left">Left</button>
+        <button data-dir="down" type="button" aria-label="Move down">Down</button>
+        <button data-dir="right" type="button" aria-label="Move right">Right</button>
       </section>
     </main>
 
@@ -96,7 +97,7 @@
       <div class="modal-card glass-panel">
         <p class="eyebrow">Element discovered</p>
         <div class="element-hero" id="unlockHero"></div>
-        <p id="unlockFact"></p>
+        <div id="unlockFact" class="discovery-copy"></div>
         <button id="unlockContinue" type="button">Continue</button>
       </div>
     </dialog>
@@ -118,8 +119,12 @@
             <p class="eyebrow">Element collection</p>
             <h2>Discovery Index</h2>
           </div>
-          <button class="icon-button close-dialog" type="button" aria-label="Close collection" title="Close">×</button>
+          <button class="icon-button close-dialog" type="button" aria-label="Close collection" title="Close">Close</button>
         </div>
+        <label class="search-wrap">
+          <span>Search</span>
+          <input id="collectionSearch" type="search" placeholder="Element, symbol, or category">
+        </label>
         <div id="collectionGrid" class="collection-grid"></div>
       </div>
     </dialog>
@@ -131,9 +136,28 @@
             <p class="eyebrow">Achievements</p>
             <h2>Lab Honors</h2>
           </div>
-          <button class="icon-button close-dialog" type="button" aria-label="Close achievements" title="Close">×</button>
+          <button class="icon-button close-dialog" type="button" aria-label="Close achievements" title="Close">Close</button>
         </div>
         <div id="achievementsList" class="achievement-list"></div>
+      </div>
+    </dialog>
+
+    <dialog id="settingsModal" class="modal">
+      <div class="modal-card glass-panel">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Settings</p>
+            <h2>Game Console</h2>
+          </div>
+          <button class="icon-button close-dialog" type="button" aria-label="Close settings" title="Close">Close</button>
+        </div>
+        <div class="settings-list">
+          <label>
+            <span>Sound effects</span>
+            <input id="soundSetting" type="checkbox">
+          </label>
+          <button id="resetProgressBtn" type="button">Reset Saved Progress</button>
+        </div>
       </div>
     </dialog>
 
@@ -144,19 +168,20 @@
             <p class="eyebrow">How to play</p>
             <h2>Build the Periodic Table</h2>
           </div>
-          <button class="icon-button close-dialog" type="button" aria-label="Close help" title="Close">×</button>
+          <button class="icon-button close-dialog" type="button" aria-label="Close help" title="Close">Close</button>
         </div>
         <div class="how-copy">
           <p>Swipe or use arrow keys to slide the board. Identical element tiles merge into the next atomic number.</p>
-          <p>The spawn pool advances every 10 elements only after the previous lowest element has disappeared from the board.</p>
-          <p>Unlock elements, answer optional quizzes, and climb from Hydrogen to Oganesson.</p>
+          <p>At Sodium and every element after it, the earliest active element upgrades once and the spawn pool advances.</p>
+          <p>Discover elements, collect badges, and climb from Hydrogen to Oganesson.</p>
         </div>
       </div>
     </dialog>
 
     <div id="eraBanner" class="era-banner" aria-live="polite">
       <span>Chemical Era Advanced</span>
-      <strong id="eraBannerPool">H 90% / He 10%</strong>
+      <em id="eraBannerMessage">All Hydrogen upgraded to Helium</em>
+      <strong id="eraBannerPool">He 90% / Li 10%</strong>
     </div>
 
     <script src="app.js"></script>

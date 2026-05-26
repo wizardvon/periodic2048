@@ -148,7 +148,9 @@ const state = {
   totalMerges: Number(localStorage.getItem("periodicTotalMerges") || 0),
   pendingQuiz: null,
   gameOver: false,
-  themeHue: 188
+  themeHue: 188,
+  completedProgressions: new Set(),
+  isAnimating: false
 };
 
 let audioContext;
@@ -169,9 +171,11 @@ const unlockModal = document.querySelector("#unlockModal");
 const quizModal = document.querySelector("#quizModal");
 const collectionModal = document.querySelector("#collectionModal");
 const achievementsModal = document.querySelector("#achievementsModal");
+const settingsModal = document.querySelector("#settingsModal");
 const howModal = document.querySelector("#howModal");
 const particleCanvas = document.querySelector("#particleCanvas");
 const particles = [];
+const MOVE_DURATION = 210;
 
 function getElement(number) {
   return elements[number - 1];
@@ -191,11 +195,13 @@ function newGame() {
   state.highest = Math.max(1, ...state.unlocked);
   state.sessionHighest = 1;
   state.sessionDiscovered = new Set();
+  state.completedProgressions = new Set();
   state.spawnMin = 1;
   state.gameOver = false;
-  spawnTile();
-  spawnTile();
-  render();
+  state.isAnimating = false;
+  const first = spawnTile();
+  const second = spawnTile();
+  render({ spawned: new Set([first, second].filter((index) => index >= 0)) });
   discoverElement(1);
 }
 
@@ -205,67 +211,56 @@ function emptyCells() {
 
 function spawnTile() {
   const empties = emptyCells();
-  if (!empties.length) return false;
+  if (!empties.length) return -1;
   const pool = getSpawnPool();
   const value = Math.random() < 0.9 ? pool.low : pool.high;
   const index = empties[Math.floor(Math.random() * empties.length)];
   state.board[index] = Math.min(value, 118);
-  return true;
+  return index;
 }
 
 function getSpawnPool() {
   return { low: state.spawnMin, high: Math.min(state.spawnMin + 1, 118) };
 }
 
-function updateSpawnProgression() {
-  const before = state.spawnMin;
-  const desiredMinimum = Math.min(1 + Math.floor((state.sessionHighest - 1) / 10), 117);
+function applyProgressionConversions() {
+  const transformed = new Set();
+  const events = [];
 
-  /*
-    Adaptive spawn progression:
-    The game wants to raise the minimum spawn element at each 10-element milestone
-    (Na, Sc, Ga, and so on), but it only advances one step when the current minimum
-    no longer exists on the board. This keeps every spawned tile mergeable and avoids
-    stranded lower elements that can never meet a partner again.
-  */
-  while (state.spawnMin < desiredMinimum && !state.board.includes(state.spawnMin)) {
-    state.spawnMin += 1;
+  for (let reached = 11; reached <= Math.min(state.sessionHighest, 118); reached += 1) {
+    const progressionLevel = reached - 10;
+    if (state.completedProgressions.has(progressionLevel) || progressionLevel >= 118) continue;
+
+    const from = progressionLevel;
+    const to = progressionLevel + 1;
+    state.board = state.board.map((value, index) => {
+      if (value === from) {
+        transformed.add(index);
+        return to;
+      }
+      return value;
+    });
+    state.completedProgressions.add(progressionLevel);
+    state.spawnMin = Math.min(to, 117);
+    events.push({ from, to, low: to, high: Math.min(to + 1, 118) });
+    state.unlocked.add(to);
   }
 
-  if (state.spawnMin !== before) {
-    showEraBanner();
-  }
+  return { transformed, events };
 }
 
-function move(direction) {
-  if (state.gameOver) return;
+async function move(direction) {
+  if (state.gameOver || state.isAnimating || unlockModal.open || quizModal.open) return;
 
-  const previous = state.board.join(",");
-  const mergedValues = [];
-  const next = Array(16).fill(0);
+  const plan = buildMovePlan(direction);
+  if (!plan.moved) return;
 
-  for (const line of getLines(direction)) {
-    const values = line.map((index) => state.board[index]).filter(Boolean);
-    const packed = [];
-    for (let i = 0; i < values.length; i += 1) {
-      if (values[i] === values[i + 1] && values[i] < 118) {
-        const merged = values[i] + 1;
-        packed.push(merged);
-        mergedValues.push(merged);
-        i += 1;
-      } else {
-        packed.push(values[i]);
-      }
-    }
-    line.forEach((index, position) => {
-      next[index] = packed[position] || 0;
-    });
-  }
+  state.isAnimating = true;
+  playSound(plan.mergedValues.length ? "merge" : "slide", Math.max(...plan.mergedValues, 1));
+  await animateMove(plan);
 
-  if (next.join(",") === previous) return;
-
-  state.board = next;
-  for (const value of mergedValues) {
+  state.board = plan.next;
+  for (const value of plan.mergedValues) {
     state.score += value;
     state.totalMerges += 1;
     discoverElement(value);
@@ -274,12 +269,23 @@ function move(direction) {
 
   state.bestScore = Math.max(state.bestScore, state.score);
   updateHighest();
-  updateSpawnProgression();
-  spawnTile();
-  updateSpawnProgression();
+  const progression = applyProgressionConversions();
+  const spawned = spawnTile();
+  updateHighest();
   checkAchievements();
-  render(new Set(mergedValues));
-  playSound(mergedValues.length ? "merge" : "slide", Math.max(...mergedValues, 1));
+  render({
+    merged: plan.mergedIndexes,
+    spawned: new Set(spawned >= 0 ? [spawned] : []),
+    transformed: progression.transformed
+  });
+
+  if (progression.events.length) {
+    showEraBanner(progression.events[progression.events.length - 1]);
+    progression.events.forEach((event) => {
+      burstForElement(event.to);
+      showToast(`All ${getElement(event.from).name} upgraded to ${getElement(event.to).name}`);
+    });
+  }
 
   if (!canMove()) {
     state.gameOver = true;
@@ -287,7 +293,70 @@ function move(direction) {
     playSound("gameOver");
   }
 
+  state.isAnimating = false;
   saveProgress();
+}
+
+function buildMovePlan(direction) {
+  const next = Array(16).fill(0);
+  const animations = [];
+  const mergedValues = [];
+  const mergedIndexes = new Set();
+
+  for (const line of getLines(direction)) {
+    const entries = line
+      .map((index) => ({ index, value: state.board[index] }))
+      .filter((entry) => entry.value);
+    const packed = [];
+
+    for (let i = 0; i < entries.length; i += 1) {
+      const current = entries[i];
+      const incoming = entries[i + 1];
+      const targetIndex = line[packed.length];
+
+      if (incoming && current.value === incoming.value && current.value < 118) {
+        const merged = current.value + 1;
+        packed.push(merged);
+        next[targetIndex] = merged;
+        mergedValues.push(merged);
+        mergedIndexes.add(targetIndex);
+        animations.push({ from: current.index, to: targetIndex, value: current.value, merge: true });
+        animations.push({ from: incoming.index, to: targetIndex, value: incoming.value, merge: true });
+        i += 1;
+      } else {
+        packed.push(current.value);
+        next[targetIndex] = current.value;
+        animations.push({ from: current.index, to: targetIndex, value: current.value, merge: false });
+      }
+    }
+  }
+
+  return {
+    next,
+    animations,
+    mergedValues,
+    mergedIndexes,
+    moved: next.join(",") !== state.board.join(",")
+  };
+}
+
+function animateMove(plan) {
+  return new Promise((resolve) => {
+    boardEl.innerHTML = "";
+    renderCells();
+    const movingTiles = plan.animations.map((item) => {
+      const tile = createTile(item.value, item.from);
+      if (item.merge) tile.classList.add("merging");
+      boardEl.appendChild(tile);
+      return { tile, to: item.to };
+    });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        movingTiles.forEach((item) => positionElement(item.tile, item.to));
+        setTimeout(resolve, MOVE_DURATION + 35);
+      });
+    });
+  });
 }
 
 function getLines(direction) {
@@ -330,9 +399,6 @@ function discoverElement(value) {
   if (quizMilestones.has(value)) {
     state.pendingQuiz = value;
   }
-  if (milestones.has(value)) {
-    setTimeout(showEraBanner, 300);
-  }
 }
 
 function updateHighest() {
@@ -349,28 +415,64 @@ function checkAchievements() {
   }
 }
 
-function render(mergedSet = new Set()) {
+function render(flags = {}) {
+  const mergedSet = flags.merged || new Set();
+  const spawnedSet = flags.spawned || new Set();
+  const transformedSet = flags.transformed || new Set();
   boardEl.innerHTML = "";
-  state.board.forEach((value) => {
-    if (!value) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      boardEl.appendChild(cell);
-      return;
-    }
-    const el = getElement(value);
-    const tile = document.createElement("article");
-    tile.className = `tile ${mergedSet.has(value) ? "merged" : ""}`;
-    tile.style.background = tileBackground(value);
-    tile.innerHTML = `
-      <span class="tile-number">${el.atomicNumber}</span>
-      <strong class="tile-symbol">${el.symbol}</strong>
-      <span class="tile-name">${el.name}</span>
-      <span class="tile-mass">${el.atomicMass}</span>
-    `;
+  renderCells();
+  state.board.forEach((value, index) => {
+    if (!value) return;
+    boardEl.appendChild(createTile(value, index, {
+      merged: mergedSet.has(index),
+      spawned: spawnedSet.has(index),
+      transformed: transformedSet.has(index)
+    }));
+  });
+  renderStats();
+}
+
+function renderMovingTiles(animations, atTarget) {
+  boardEl.innerHTML = "";
+  renderCells();
+  animations.forEach((item) => {
+    const tile = createTile(item.value, atTarget ? item.to : item.from);
+    if (item.merge) tile.classList.add("merging");
     boardEl.appendChild(tile);
   });
+}
 
+function renderCells() {
+  for (let index = 0; index < 16; index += 1) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    positionElement(cell, index);
+    boardEl.appendChild(cell);
+  }
+}
+
+function createTile(value, index, flags = {}) {
+  const el = getElement(value);
+  const tile = document.createElement("article");
+  tile.className = `tile ${flags.merged ? "merged" : ""} ${flags.spawned ? "spawned" : ""} ${flags.transformed ? "transformed" : ""}`;
+  positionElement(tile, index);
+  tile.style.background = tileBackground(value);
+  tile.style.setProperty("--tile-glow", tileGlow(value));
+  tile.innerHTML = `
+    <span class="tile-number">${el.atomicNumber}</span>
+    <strong class="tile-symbol">${el.symbol}</strong>
+    <span class="tile-name">${el.name}</span>
+    <span class="tile-mass">${el.atomicMass}</span>
+  `;
+  return tile;
+}
+
+function positionElement(node, index) {
+  node.style.setProperty("--x", String(index % 4));
+  node.style.setProperty("--y", String(Math.floor(index / 4)));
+}
+
+function renderStats() {
   const high = getElement(state.highest);
   const pool = getSpawnPool();
   const lowEl = getElement(pool.low);
@@ -384,13 +486,20 @@ function render(mergedSet = new Set()) {
   eraPoolEl.textContent = `Spawn pool: ${lowEl.symbol} 90% / ${highEl.symbol} 10%`;
   eraProgressEl.style.width = `${Math.min(100, (state.highest / 118) * 100)}%`;
   document.documentElement.style.setProperty("--cyan", `hsl(${state.themeHue} 100% 68%)`);
-  document.querySelector("#soundIcon").textContent = state.sound ? "♪" : "×";
+  document.querySelector("#soundIcon").textContent = state.sound ? "Sound" : "Mute";
+  const soundSetting = document.querySelector("#soundSetting");
+  if (soundSetting) soundSetting.checked = state.sound;
 }
 
 function tileBackground(value) {
   const hue = (value * 27 + state.themeHue) % 360;
   const hue2 = (hue + 42) % 360;
   return `linear-gradient(135deg, hsl(${hue} 88% 72%), hsl(${hue2} 80% 62%))`;
+}
+
+function tileGlow(value) {
+  const hue = (value * 27 + state.themeHue) % 360;
+  return `hsla(${hue}, 100%, 68%, 0.34)`;
 }
 
 function eraName() {
@@ -406,16 +515,46 @@ function eraName() {
 function showUnlockModal(el) {
   playSound("discover", el.atomicNumber);
   document.querySelector("#unlockHero").style.background = tileBackground(el.atomicNumber);
+  document.querySelector("#unlockHero").style.setProperty("--tile-glow", tileGlow(el.atomicNumber));
   document.querySelector("#unlockHero").innerHTML = `
     <div>
       <span>${el.atomicNumber}</span>
       <strong class="tile-symbol">${el.symbol}</strong>
       <h2>${el.name}</h2>
-      <p>${el.atomicMass} · ${el.category}</p>
+      <p>${el.atomicMass} - ${el.category}</p>
     </div>
   `;
-  document.querySelector("#unlockFact").textContent = el.shortFact;
+  document.querySelector("#unlockFact").innerHTML = `
+    <p><strong>Atomic number:</strong> ${el.atomicNumber}</p>
+    <p><strong>Atomic mass:</strong> ${el.atomicMass}</p>
+    <p><strong>Category:</strong> ${el.category}</p>
+    <p><strong>Fact:</strong> ${el.shortFact}</p>
+    <p><strong>Real-world use:</strong> ${realWorldUse(el)}</p>
+  `;
   if (!unlockModal.open) unlockModal.showModal();
+}
+
+function realWorldUse(el) {
+  const uses = {
+    Hydrogen: "Fuel cells, ammonia production, and rocket propellant.",
+    Helium: "Cryogenic cooling, balloons, leak detection, and MRI magnets.",
+    Lithium: "Rechargeable batteries, lightweight alloys, and mood-stabilizing medicine.",
+    Carbon: "Steelmaking, filters, pencils, composites, and every living organism.",
+    Oxygen: "Medical breathing support, steelmaking, and water treatment.",
+    Silicon: "Computer chips, solar panels, glass, and sealants.",
+    Iron: "Steel structures, tools, vehicles, and machinery.",
+    Copper: "Electrical wiring, plumbing, motors, and electronics.",
+    Silver: "Electronics, mirrors, jewelry, and antimicrobial coatings.",
+    Gold: "Electronics, aerospace connectors, dentistry, and jewelry.",
+    Uranium: "Nuclear reactor fuel and scientific research."
+  };
+  if (uses[el.name]) return uses[el.name];
+  if (el.category.includes("Noble gas")) return "Lighting, lasers, controlled atmospheres, and specialized scientific instruments.";
+  if (el.category.includes("Alkali")) return "Reactive chemistry, specialty materials, and laboratory research.";
+  if (el.category.includes("Transition")) return "Alloys, catalysts, electronics, and high-performance industrial materials.";
+  if (el.category.includes("Lanthanide")) return "Magnets, displays, lasers, batteries, and optical materials.";
+  if (el.category.includes("Actinide")) return "Nuclear science, energy research, and specialized detectors.";
+  return "Used in materials science, manufacturing, medicine, or laboratory research depending on its compounds.";
 }
 
 function showQuiz(value) {
@@ -468,21 +607,27 @@ function buildOptions(question, answer, source) {
   return { question, answer, options: [...options].sort(() => Math.random() - 0.5) };
 }
 
-function showEraBanner() {
+function showEraBanner(event = null) {
   playSound("era");
   const pool = getSpawnPool();
-  eraBannerPool.textContent = `${getElement(pool.low).symbol} 90% / ${getElement(pool.high).symbol} 10%`;
+  const active = event || { low: pool.low, high: pool.high };
+  const message = event ? `All ${getElement(event.from).name} upgraded to ${getElement(event.to).name}` : "Spawn matrix recalibrated";
+  document.querySelector("#eraBannerMessage").textContent = message;
+  eraBannerPool.textContent = `${getElement(active.low).symbol} 90% / ${getElement(active.high).symbol} 10%`;
   eraBanner.classList.remove("show");
   void eraBanner.offsetWidth;
   eraBanner.classList.add("show");
   state.themeHue = (state.themeHue + 34) % 360;
-  render();
+  renderStats();
 }
 
 function renderCollection() {
   const grid = document.querySelector("#collectionGrid");
+  const query = (document.querySelector("#collectionSearch")?.value || "").trim().toLowerCase();
   grid.innerHTML = "";
-  elements.forEach((el) => {
+  elements
+    .filter((el) => !query || `${el.atomicNumber} ${el.symbol} ${el.name} ${el.category}`.toLowerCase().includes(query))
+    .forEach((el) => {
     const card = document.createElement("article");
     const unlocked = state.unlocked.has(el.atomicNumber);
     card.className = `collection-card ${unlocked ? "" : "locked"}`;
@@ -507,7 +652,7 @@ function renderAchievements() {
     const unlocked = state.achievements.has(item.id);
     const card = document.createElement("article");
     card.className = `achievement-card ${unlocked ? "unlocked" : ""}`;
-    card.innerHTML = `<strong>${unlocked ? "Unlocked" : "Locked"} · ${item.name}</strong><p>${item.text}</p>`;
+    card.innerHTML = `<strong>${unlocked ? "Unlocked" : "Locked"} - ${item.name}</strong><p>${item.text}</p>`;
     list.appendChild(card);
   });
 }
@@ -724,11 +869,34 @@ function setupEvents() {
     renderAchievements();
     achievementsModal.showModal();
   });
+  document.querySelector("#settingsBtn").addEventListener("click", () => {
+    document.querySelector("#soundSetting").checked = state.sound;
+    settingsModal.showModal();
+  });
   document.querySelector("#howBtn").addEventListener("click", () => howModal.showModal());
   document.querySelector("#soundToggle").addEventListener("click", () => {
     state.sound = !state.sound;
     saveProgress();
     render();
+  });
+  document.querySelector("#soundSetting").addEventListener("change", (event) => {
+    state.sound = event.target.checked;
+    saveProgress();
+    render();
+  });
+  document.querySelector("#collectionSearch").addEventListener("input", renderCollection);
+  document.querySelector("#resetProgressBtn").addEventListener("click", () => {
+    localStorage.removeItem("periodicBestScore");
+    localStorage.removeItem("periodicUnlocked");
+    localStorage.removeItem("periodicAchievements");
+    localStorage.removeItem("periodicTotalMerges");
+    state.bestScore = 0;
+    state.unlocked = new Set([1]);
+    state.achievements = new Set();
+    state.totalMerges = 0;
+    settingsModal.close();
+    newGame();
+    showToast("Saved progress reset.");
   });
   document.querySelectorAll(".close-dialog").forEach((button) => {
     button.addEventListener("click", () => button.closest("dialog").close());
