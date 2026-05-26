@@ -77,18 +77,11 @@
 
       <nav class="action-bar glass-panel" aria-label="Game actions">
         <button id="newGameBtn" type="button">New Game</button>
-        <button id="collectionBtn" type="button">Collection</button>
-        <button id="achievementsBtn" type="button">Achievements</button>
-        <button id="settingsBtn" type="button">Settings</button>
-        <button id="howBtn" type="button">How to Play</button>
+        <button id="menuBtn" class="menu-button" type="button" aria-haspopup="dialog" aria-controls="menuDrawer">
+          <span class="hamburger" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>Menu</span>
+        </button>
       </nav>
-
-      <section class="mobile-controls glass-panel" aria-label="Directional controls">
-        <button data-dir="up" type="button" aria-label="Move up">Up</button>
-        <button data-dir="left" type="button" aria-label="Move left">Left</button>
-        <button data-dir="down" type="button" aria-label="Move down">Down</button>
-        <button data-dir="right" type="button" aria-label="Move right">Right</button>
-      </section>
     </main>
 
     <div id="toastLayer" class="toast-layer" aria-live="polite"></div>
@@ -139,6 +132,24 @@
           <button class="icon-button close-dialog" type="button" aria-label="Close achievements" title="Close">Close</button>
         </div>
         <div id="achievementsList" class="achievement-list"></div>
+      </div>
+    </dialog>
+
+    <dialog id="menuDrawer" class="drawer-modal">
+      <div class="drawer-panel glass-panel">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Command menu</p>
+            <h2>Periodic 2048</h2>
+          </div>
+          <button class="icon-button close-dialog" type="button" aria-label="Close menu" title="Close">Close</button>
+        </div>
+        <div class="drawer-actions">
+          <button id="collectionBtn" type="button">Collection</button>
+          <button id="achievementsBtn" type="button">Achievements</button>
+          <button id="settingsBtn" type="button">Settings</button>
+          <button id="howBtn" type="button">How to Play</button>
+        </div>
       </div>
     </dialog>
 

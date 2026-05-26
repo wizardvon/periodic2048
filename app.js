@@ -172,10 +172,11 @@ const quizModal = document.querySelector("#quizModal");
 const collectionModal = document.querySelector("#collectionModal");
 const achievementsModal = document.querySelector("#achievementsModal");
 const settingsModal = document.querySelector("#settingsModal");
+const menuDrawer = document.querySelector("#menuDrawer");
 const howModal = document.querySelector("#howModal");
 const particleCanvas = document.querySelector("#particleCanvas");
 const particles = [];
-const MOVE_DURATION = 210;
+const MOVE_DURATION = 105;
 
 function getElement(number) {
   return elements[number - 1];
@@ -852,28 +853,31 @@ function setupEvents() {
   boardEl.addEventListener("pointerup", (event) => {
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 28) return;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 16) return;
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
   });
 
-  document.querySelectorAll("[data-dir]").forEach((button) => {
-    button.addEventListener("click", () => move(button.dataset.dir));
-  });
-
   document.querySelector("#newGameBtn").addEventListener("click", newGame);
+  document.querySelector("#menuBtn").addEventListener("click", () => menuDrawer.showModal());
   document.querySelector("#collectionBtn").addEventListener("click", () => {
+    menuDrawer.close();
     renderCollection();
     collectionModal.showModal();
   });
   document.querySelector("#achievementsBtn").addEventListener("click", () => {
+    menuDrawer.close();
     renderAchievements();
     achievementsModal.showModal();
   });
   document.querySelector("#settingsBtn").addEventListener("click", () => {
+    menuDrawer.close();
     document.querySelector("#soundSetting").checked = state.sound;
     settingsModal.showModal();
   });
-  document.querySelector("#howBtn").addEventListener("click", () => howModal.showModal());
+  document.querySelector("#howBtn").addEventListener("click", () => {
+    menuDrawer.close();
+    howModal.showModal();
+  });
   document.querySelector("#soundToggle").addEventListener("click", () => {
     state.sound = !state.sound;
     saveProgress();
