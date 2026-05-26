@@ -161,9 +161,14 @@ const bestEl = document.querySelector("#bestScore");
 const highestEl = document.querySelector("#highestElement");
 const eraNameEl = document.querySelector("#eraName");
 const eraPoolEl = document.querySelector("#eraPool");
+const eraNumberEl = document.querySelector("#eraNumber");
+const eraRangeEl = document.querySelector("#eraRange");
 const eraProgressEl = document.querySelector("#eraProgress");
 const unlockCountEl = document.querySelector("#unlockCount");
 const currentFactEl = document.querySelector("#currentFact");
+const spawnLowCard = document.querySelector("#spawnLowCard");
+const spawnHighCard = document.querySelector("#spawnHighCard");
+const elementRail = document.querySelector("#elementRail");
 const toastLayer = document.querySelector("#toastLayer");
 const eraBanner = document.querySelector("#eraBanner");
 const eraBannerPool = document.querySelector("#eraBannerPool");
@@ -176,7 +181,7 @@ const menuDrawer = document.querySelector("#menuDrawer");
 const howModal = document.querySelector("#howModal");
 const particleCanvas = document.querySelector("#particleCanvas");
 const particles = [];
-const MOVE_DURATION = 105;
+const MOVE_DURATION = 60;
 
 function getElement(number) {
   return elements[number - 1];
@@ -354,7 +359,9 @@ function animateMove(plan) {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         movingTiles.forEach((item) => positionElement(item.tile, item.to));
-        setTimeout(resolve, MOVE_DURATION + 35);
+        setTimeout(() => {
+          resolve();
+        }, MOVE_DURATION + 10);
       });
     });
   });
@@ -431,6 +438,7 @@ function render(flags = {}) {
     }));
   });
   renderStats();
+  renderElementRail();
 }
 
 function renderMovingTiles(animations, atTarget) {
@@ -457,8 +465,7 @@ function createTile(value, index, flags = {}) {
   const tile = document.createElement("article");
   tile.className = `tile ${flags.merged ? "merged" : ""} ${flags.spawned ? "spawned" : ""} ${flags.transformed ? "transformed" : ""}`;
   positionElement(tile, index);
-  tile.style.background = tileBackground(value);
-  tile.style.setProperty("--tile-glow", tileGlow(value));
+  applyElementStyle(tile, value);
   tile.innerHTML = `
     <span class="tile-number">${el.atomicNumber}</span>
     <strong class="tile-symbol">${el.symbol}</strong>
@@ -484,7 +491,14 @@ function renderStats() {
   unlockCountEl.textContent = String(state.unlocked.size);
   currentFactEl.textContent = high.shortFact;
   eraNameEl.textContent = eraName();
+  const eraLevel = Math.max(1, Math.min(12, state.spawnMin));
+  eraNumberEl.textContent = String(eraLevel);
+  eraRangeEl.textContent = `${state.spawnMin} - ${Math.min(state.spawnMin + 9, 118)}`;
   eraPoolEl.textContent = `Spawn pool: ${lowEl.symbol} 90% / ${highEl.symbol} 10%`;
+  spawnLowCard.innerHTML = spawnCardHtml(lowEl, "90%");
+  spawnHighCard.innerHTML = spawnCardHtml(highEl, "10%");
+  applyElementStyle(spawnLowCard, lowEl.atomicNumber);
+  applyElementStyle(spawnHighCard, highEl.atomicNumber);
   eraProgressEl.style.width = `${Math.min(100, (state.highest / 118) * 100)}%`;
   document.documentElement.style.setProperty("--cyan", `hsl(${state.themeHue} 100% 68%)`);
   document.querySelector("#soundIcon").textContent = state.sound ? "Sound" : "Mute";
@@ -492,15 +506,62 @@ function renderStats() {
   if (soundSetting) soundSetting.checked = state.sound;
 }
 
+function spawnCardHtml(el, chance) {
+  return `<small>${el.atomicNumber}</small><strong>${el.symbol}</strong><span>${chance}</span>`;
+}
+
+function renderElementRail() {
+  if (!elementRail) return;
+  const start = Math.max(1, Math.min(state.spawnMin, 108));
+  const railElements = elements.slice(start - 1, Math.min(start + 10, 118));
+  elementRail.innerHTML = "";
+  railElements.forEach((el) => {
+    const card = document.createElement("article");
+    card.className = `rail-card ${state.unlocked.has(el.atomicNumber) || el.atomicNumber <= state.highest ? "" : "locked"}`;
+    card.innerHTML = `<small>${el.atomicNumber}</small><strong>${el.symbol}</strong><small>${el.name}</small>`;
+    applyElementStyle(card, el.atomicNumber);
+    elementRail.appendChild(card);
+  });
+}
+
 function tileBackground(value) {
-  const hue = (value * 27 + state.themeHue) % 360;
-  const hue2 = (hue + 42) % 360;
-  return `linear-gradient(135deg, hsl(${hue} 88% 72%), hsl(${hue2} 80% 62%))`;
+  const style = elementVisual(value);
+  return style.background;
 }
 
 function tileGlow(value) {
-  const hue = (value * 27 + state.themeHue) % 360;
-  return `hsla(${hue}, 100%, 68%, 0.34)`;
+  return elementVisual(value).glow;
+}
+
+function applyElementStyle(node, value) {
+  const style = elementVisual(value);
+  node.style.background = style.background;
+  node.style.setProperty("--tile-glow", style.glow);
+  node.style.setProperty("--rail-bg", style.background);
+  node.style.setProperty("--rail-line", style.line);
+  node.style.setProperty("--rail-glow", style.glow);
+}
+
+function elementVisual(value) {
+  const palette = [
+    ["#1b86ff", "#071a43", "#55eaff"],
+    ["#9b5cff", "#2a0d5c", "#b987ff"],
+    ["#8d38ff", "#250a4f", "#b65cff"],
+    ["#ff4f91", "#5a102c", "#ff73b8"],
+    ["#ff8a2e", "#5c1c06", "#ff9d46"],
+    ["#f2b43b", "#5a3908", "#ffd166"],
+    ["#26d986", "#063b2a", "#72ffc2"],
+    ["#21d8c2", "#06383b", "#5fffee"],
+    ["#24e4ff", "#063145", "#55eaff"],
+    ["#19bfd6", "#052d3b", "#55eaff"],
+    ["#ffc531", "#533400", "#ffd166"]
+  ];
+  const picked = palette[(value - 1) % palette.length];
+  return {
+    background: `linear-gradient(145deg, ${picked[0]}, ${picked[1]})`,
+    line: `${picked[2]}cc`,
+    glow: `${picked[2]}88`
+  };
 }
 
 function eraName() {

@@ -15,8 +15,8 @@
   --radius: 18px;
   --tile-radius: 14px;
   --board-gap: clamp(6px, 1.2vmin, 10px);
-  --board-size: min(62dvh, 54dvw, 560px);
-  --move-ms: 95ms;
+  --board-size: min(58dvh, 46dvw, 560px);
+  --move-ms: 55ms;
   color-scheme: dark;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -103,11 +103,12 @@ button {
   padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   display: grid;
   grid-template-columns: minmax(170px, 0.72fr) minmax(280px, var(--board-size)) minmax(164px, 0.62fr);
-  grid-template-rows: minmax(74px, 0.22fr) minmax(0, 1fr) minmax(54px, 0.16fr);
+  grid-template-rows: minmax(78px, 0.2fr) minmax(0, 1fr) minmax(54px, 0.14fr) minmax(72px, 0.18fr);
   grid-template-areas:
     "brand stats stats"
     "era board lesson"
-    "actions board lesson";
+    "actions board lesson"
+    "rail rail rail";
   gap: clamp(8px, 1.6vmin, 14px);
   align-items: stretch;
 }
@@ -130,6 +131,43 @@ button {
   gap: 10px;
 }
 
+.brand-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.atom-logo {
+  position: relative;
+  width: clamp(46px, 8vmin, 76px);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 88, 200, 0.9) 0 4px, transparent 5px), radial-gradient(circle, rgba(85, 234, 255, 0.28), transparent 58%);
+  filter: drop-shadow(0 0 16px rgba(85, 234, 255, 0.7));
+}
+
+.atom-logo span {
+  position: absolute;
+  inset: 20%;
+  border: 1px solid rgba(85, 234, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(155, 108, 255, 0.75);
+}
+
+.atom-logo span:nth-child(1) {
+  transform: rotate(18deg) scaleX(1.8);
+}
+
+.atom-logo span:nth-child(2) {
+  transform: rotate(78deg) scaleX(1.8);
+  border-color: rgba(255, 88, 200, 0.85);
+}
+
+.atom-logo span:nth-child(3) {
+  transform: rotate(-42deg) scaleX(1.8);
+  border-color: rgba(255, 209, 102, 0.75);
+}
+
 .eyebrow {
   margin: 0 0 5px;
   color: var(--cyan);
@@ -147,10 +185,29 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(1.34rem, 4.7vmin, 3.1rem);
+  font-size: clamp(1.24rem, 4.5vmin, 3rem);
   line-height: 0.9;
   letter-spacing: 0;
   text-shadow: 0 0 24px rgba(85, 234, 255, 0.44), 0 0 42px rgba(255, 88, 200, 0.22);
+}
+
+h1 span,
+h1 strong {
+  display: block;
+}
+
+h1 span {
+  font-size: 0.42em;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+h1 strong {
+  color: transparent;
+  background: linear-gradient(90deg, #ff58c8, #b97cff 38%, #55eaff 76%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  filter: drop-shadow(0 0 16px rgba(255, 88, 200, 0.55));
 }
 
 h2 {
@@ -241,6 +298,32 @@ h2 {
   font-weight: 850;
 }
 
+.era-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.era-chip span {
+  width: 48px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  color: #f4eaff;
+  font-size: 1.5rem;
+  font-weight: 950;
+  background: radial-gradient(circle, rgba(155, 108, 255, 0.44), rgba(12, 14, 34, 0.7));
+  border: 2px solid rgba(190, 116, 255, 0.85);
+  clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0 50%);
+  box-shadow: 0 0 24px rgba(155, 108, 255, 0.65), inset 0 0 16px rgba(155, 108, 255, 0.36);
+}
+
+.era-chip strong {
+  color: #fff;
+  font-size: clamp(1rem, 2.8vmin, 1.55rem);
+}
+
 .progress-track {
   height: 8px;
   border-radius: 99px;
@@ -270,8 +353,11 @@ h2 {
 .board-shell {
   width: min(100%, var(--board-size));
   aspect-ratio: 1;
-  border-radius: 28px;
+  border-radius: 22px;
   padding: clamp(9px, 1.7vmin, 14px);
+  background: linear-gradient(145deg, rgba(20, 30, 70, 0.72), rgba(3, 7, 21, 0.78));
+  border-color: rgba(91, 172, 255, 0.28);
+  box-shadow: 0 0 0 1px rgba(155, 108, 255, 0.16), 0 0 46px rgba(85, 234, 255, 0.16), inset 0 0 28px rgba(8, 14, 34, 0.88);
 }
 
 .board {
@@ -293,9 +379,9 @@ h2 {
 }
 
 .cell {
-  background: var(--cell);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 18px rgba(85, 234, 255, 0.04);
+  background: rgba(3, 8, 24, 0.78);
+  border: 1px solid rgba(129, 155, 230, 0.22);
+  box-shadow: inset 0 0 22px rgba(5, 10, 28, 0.86), 0 0 16px rgba(85, 234, 255, 0.04);
 }
 
 .tile {
@@ -307,9 +393,9 @@ h2 {
   padding: clamp(4px, 1.05vmin, 8px);
   overflow: hidden;
   isolation: isolate;
-  color: #06101d;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 24px var(--tile-glow), 0 13px 26px rgba(0, 0, 0, 0.32);
-  transition: left var(--move-ms) cubic-bezier(0.2, 0.9, 0.22, 1), top var(--move-ms) cubic-bezier(0.2, 0.9, 0.22, 1), transform 170ms ease, opacity 150ms ease, filter 170ms ease;
+  color: #f9fbff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), inset 0 -22px 32px rgba(0, 0, 0, 0.22), 0 0 16px var(--tile-glow), 0 0 34px var(--tile-glow), 0 13px 26px rgba(0, 0, 0, 0.34);
+  transition: left var(--move-ms) cubic-bezier(0.12, 0.8, 0.18, 1), top var(--move-ms) cubic-bezier(0.12, 0.8, 0.18, 1), transform 90ms ease, opacity 80ms ease, filter 90ms ease;
 }
 
 .tile::before {
@@ -319,6 +405,16 @@ h2 {
   background: radial-gradient(circle at 28% 14%, rgba(255, 255, 255, 0.82), transparent 34%);
   opacity: 0.58;
   z-index: -1;
+}
+
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
 }
 
 .tile-number,
@@ -332,6 +428,7 @@ h2 {
   line-height: 0.92;
   font-weight: 950;
   letter-spacing: 0;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.38);
 }
 
 .tile-name {
@@ -345,13 +442,19 @@ h2 {
   text-overflow: ellipsis;
 }
 
+.tile-number,
+.tile-mass,
+.tile-name {
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.6);
+}
+
 .tile.spawned {
-  animation: tileIn 190ms cubic-bezier(0.2, 1.25, 0.4, 1) both;
+  animation: tileIn 85ms cubic-bezier(0.2, 1.15, 0.4, 1) both;
 }
 
 .tile.merged,
 .tile.transformed {
-  animation: mergePop 260ms cubic-bezier(0.17, 1.45, 0.36, 1) both;
+  animation: mergePop 105ms cubic-bezier(0.17, 1.25, 0.36, 1) both;
 }
 
 .tile.transformed {
@@ -366,6 +469,96 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
+}
+
+.element-rail {
+  grid-area: rail;
+  min-height: 0;
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  overflow: hidden;
+}
+
+.rail-track {
+  height: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(62px, 1fr);
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.rail-card {
+  position: relative;
+  height: 100%;
+  min-height: 52px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 5px;
+  color: #f8fbff;
+  border: 1px solid var(--rail-line);
+  background: var(--rail-bg);
+  box-shadow: 0 0 18px var(--rail-glow), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.rail-card::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  width: 10px;
+  height: 2px;
+  background: rgba(221, 229, 255, 0.7);
+  box-shadow: 0 0 12px rgba(85, 234, 255, 0.5);
+}
+
+.rail-card:last-child::after {
+  display: none;
+}
+
+.rail-card small,
+.rail-card span {
+  display: block;
+}
+
+.rail-card strong {
+  display: block;
+  font-size: clamp(1rem, 3vmin, 1.7rem);
+  line-height: 1;
+}
+
+.rail-card small {
+  font-size: 0.58rem;
+}
+
+.rail-card.locked {
+  opacity: 0.34;
+  filter: grayscale(0.7);
+}
+
+.spawn-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.spawn-cards article {
+  min-height: 76px;
+  border-radius: 14px;
+  padding: 9px;
+  color: #fff;
+  border: 1px solid var(--rail-line);
+  background: var(--rail-bg);
+  box-shadow: 0 0 20px var(--rail-glow), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.spawn-cards strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
 }
 
 .action-bar button,
@@ -705,13 +898,14 @@ h2 {
 
   .app-shell {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: minmax(68px, 0.14fr) minmax(70px, 0.14fr) minmax(0, 1fr) minmax(64px, 0.12fr) minmax(52px, 0.1fr);
+    grid-template-rows: minmax(68px, 0.14fr) minmax(70px, 0.13fr) minmax(0, 1fr) minmax(58px, 0.1fr) minmax(50px, 0.08fr) minmax(54px, 0.1fr);
     grid-template-areas:
       "brand brand"
       "stats stats"
       "board board"
       "era lesson"
-      "actions actions";
+      "actions actions"
+      "rail rail";
   }
 
   .stats-grid {
@@ -729,17 +923,17 @@ h2 {
 
 @media (max-width: 760px) and (orientation: landscape) {
   :root {
-    --board-size: min(78dvh, 44dvw);
+    --board-size: min(70dvh, 42dvw);
   }
 
   .app-shell {
     grid-template-columns: minmax(146px, 0.62fr) minmax(250px, var(--board-size)) minmax(142px, 0.55fr);
-    grid-template-rows: minmax(58px, 0.18fr) minmax(0, 1fr) minmax(48px, 0.14fr);
+    grid-template-rows: minmax(58px, 0.18fr) minmax(0, 1fr) minmax(44px, 0.12fr) minmax(48px, 0.13fr);
     gap: 7px;
   }
 
-  .lesson-panel {
-    display: none;
+  .rail-track {
+    grid-auto-columns: minmax(54px, 1fr);
   }
 
   .stats-grid {

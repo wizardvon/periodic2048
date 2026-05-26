@@ -25,9 +25,14 @@
 
     <main class="app-shell">
       <section class="brand-panel glass-panel">
-        <div>
+        <div class="atom-logo" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="brand-copy">
           <p class="eyebrow">Elemental fusion grid</p>
-          <h1>Periodic 2048</h1>
+          <h1><span>Periodic</span><strong>2048</strong></h1>
         </div>
         <button class="icon-button" id="soundToggle" type="button" aria-label="Toggle sound" title="Toggle sound">
           <span id="soundIcon">Sound</span>
@@ -55,7 +60,11 @@
 
       <section class="game-layout">
         <aside class="side-panel glass-panel era-panel">
-          <p class="eyebrow">Spawn matrix</p>
+          <p class="eyebrow">Chemical era</p>
+          <div class="era-chip">
+            <span id="eraNumber">1</span>
+            <strong id="eraRange">1 - 10</strong>
+          </div>
           <p id="eraPool">Spawn pool: H 90% / He 10%</p>
           <div class="progress-track" aria-hidden="true">
             <span id="eraProgress"></span>
@@ -70,8 +79,12 @@
         </section>
 
         <aside class="side-panel glass-panel lesson-panel">
-          <p class="eyebrow">Active signal</p>
+          <p class="eyebrow">Progression system</p>
           <p id="currentFact">Hydrogen is the most abundant element in the universe.</p>
+          <div class="spawn-cards" aria-label="Current spawn pool">
+            <article id="spawnLowCard"></article>
+            <article id="spawnHighCard"></article>
+          </div>
         </aside>
       </section>
 
@@ -82,6 +95,10 @@
           <span>Menu</span>
         </button>
       </nav>
+
+      <section class="element-rail glass-panel" aria-label="Element progression">
+        <div id="elementRail" class="rail-track"></div>
+      </section>
     </main>
 
     <div id="toastLayer" class="toast-layer" aria-live="polite"></div>
